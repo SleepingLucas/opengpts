@@ -8,10 +8,17 @@ import structlog
 from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models import BedrockChat, ChatFireworks
 from langchain_community.chat_models.ollama import ChatOllama
+from langchain_community.chat_models.tongyi import ChatTongyi
 from langchain_google_vertexai import ChatVertexAI
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 logger = structlog.get_logger(__name__)
+
+
+# !changed 
+@lru_cache(maxsize=4)
+def get_tongyi_llm(model: str = "qwen2-72b-instruct"):
+    return ChatTongyi(model=model, temperature=0)
 
 
 @lru_cache(maxsize=4)

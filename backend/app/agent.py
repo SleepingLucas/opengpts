@@ -21,6 +21,7 @@ from app.llms import (
     get_mixtral_fireworks,
     get_ollama_llm,
     get_openai_llm,
+    get_tongyi_llm,
 )
 from app.retrieval import get_retrieval_executor
 from app.tools import (
@@ -61,7 +62,13 @@ Tool = Union[
 ]
 
 
+# !changed: 添加通义千问
 class AgentType(str, Enum):
+    QWEN2_72b_INSTRUCT = "qwen2-72b-instruct"
+    QWEN_LONG = "qwen-long"
+    QWEN_TURBO = "qwen-turbo"
+    QWEN_MAX = "qwen-max"
+
     GPT_35_TURBO = "GPT 3.5 Turbo"
     GPT_4 = "GPT 4 Turbo"
     GPT_4O = "GPT 4o"
@@ -83,7 +90,28 @@ def get_agent_executor(
     system_message: str,
     interrupt_before_action: bool,
 ):
-    if agent == AgentType.GPT_35_TURBO:
+    # !changed: 添加通义千问
+    if agent == AgentType.QWEN2_72b_INSTRUCT:
+        llm = get_tongyi_llm()
+        return get_tools_agent_executor(
+            tools, llm, system_message, interrupt_before_action, CHECKPOINTER
+        )
+    elif agent == AgentType.QWEN_LONG:
+        llm = get_tongyi_llm(model="qwen-long")
+        return get_tools_agent_executor(
+            tools, llm, system_message, interrupt_before_action, CHECKPOINTER
+        )
+    elif agent == AgentType.QWEN_TURBO:
+        llm = get_tongyi_llm(model="qwen-turbo")
+        return get_tools_agent_executor(
+            tools, llm, system_message, interrupt_before_action, CHECKPOINTER
+        )
+    elif agent == AgentType.QWEN_MAX:
+        llm = get_tongyi_llm(model="qwen-max")
+        return get_tools_agent_executor(
+            tools, llm, system_message, interrupt_before_action, CHECKPOINTER
+        )
+    elif agent == AgentType.GPT_35_TURBO:
         llm = get_openai_llm()
         return get_tools_agent_executor(
             tools, llm, system_message, interrupt_before_action, CHECKPOINTER
@@ -142,7 +170,9 @@ class ConfigurableAgent(RunnableBinding):
         self,
         *,
         tools: Sequence[Tool],
-        agent: AgentType = AgentType.GPT_35_TURBO,
+        # !changed: 修改为通义千问
+        agent: AgentType = AgentType.QWEN2_72b_INSTRUCT,
+        # agent: AgentType = AgentType.GPT_35_TURBO,
         system_message: str = DEFAULT_SYSTEM_MESSAGE,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
@@ -185,7 +215,13 @@ class ConfigurableAgent(RunnableBinding):
         )
 
 
+# !changed: 添加通义千问
 class LLMType(str, Enum):
+    QWEN2_72b_INSTRUCT = "qwen2-72b-instruct"
+    QWEN_LONG = "qwen-long"
+    QWEN_TURBO = "qwen-turbo"
+    QWEN_MAX = "qwen-max"
+
     GPT_35_TURBO = "GPT 3.5 Turbo"
     GPT_4 = "GPT 4 Turbo"
     GPT_4O = "GPT 4o"
@@ -201,7 +237,16 @@ def get_chatbot(
     llm_type: LLMType,
     system_message: str,
 ):
-    if llm_type == LLMType.GPT_35_TURBO:
+    # !changed: 添加通义千问
+    if llm_type == LLMType.QWEN2_72b_INSTRUCT:
+        llm = get_tongyi_llm()
+    elif llm_type == LLMType.QWEN_LONG:
+        llm = get_tongyi_llm(model="qwen-long")
+    elif llm_type == LLMType.QWEN_TURBO:
+        llm = get_tongyi_llm(model="qwen-turbo")
+    elif llm_type == LLMType.QWEN_MAX:
+        llm = get_tongyi_llm(model="qwen-max")
+    elif llm_type == LLMType.GPT_35_TURBO:
         llm = get_openai_llm()
     elif llm_type == LLMType.GPT_4:
         llm = get_openai_llm(gpt_4=True)
@@ -230,7 +275,9 @@ class ConfigurableChatBot(RunnableBinding):
     def __init__(
         self,
         *,
-        llm: LLMType = LLMType.GPT_35_TURBO,
+        # !changed: 修改为通义千问
+        llm: LLMType = LLMType.QWEN2_72b_INSTRUCT,
+        # llm: LLMType = LLMType.GPT_35_TURBO,
         system_message: str = DEFAULT_SYSTEM_MESSAGE,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
@@ -249,7 +296,9 @@ class ConfigurableChatBot(RunnableBinding):
 
 
 chatbot = (
-    ConfigurableChatBot(llm=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
+    # ConfigurableChatBot(llm=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
+    # !changed: 修改为通义千问
+    ConfigurableChatBot(llm=LLMType.QWEN2_72b_INSTRUCT, checkpoint=CHECKPOINTER)
     .configurable_fields(
         llm=ConfigurableField(id="llm_type", name="LLM Type"),
         system_message=ConfigurableField(id="system_message", name="Instructions"),
@@ -271,7 +320,9 @@ class ConfigurableRetrieval(RunnableBinding):
     def __init__(
         self,
         *,
-        llm_type: LLMType = LLMType.GPT_35_TURBO,
+        # !changed: 修改为通义千问
+        llm_type: LLMType = LLMType.QWEN2_72b_INSTRUCT,
+        # llm_type: LLMType = LLMType.GPT_35_TURBO,
         system_message: str = DEFAULT_SYSTEM_MESSAGE,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
@@ -281,7 +332,16 @@ class ConfigurableRetrieval(RunnableBinding):
     ) -> None:
         others.pop("bound", None)
         retriever = get_retriever(assistant_id, thread_id)
-        if llm_type == LLMType.GPT_35_TURBO:
+        # !changed: 添加通义千问
+        if llm_type == LLMType.QWEN2_72b_INSTRUCT:
+            llm = get_tongyi_llm()
+        elif llm_type == LLMType.QWEN_LONG:
+            llm = get_tongyi_llm(model="qwen-long")
+        elif llm_type == LLMType.QWEN_TURBO:
+            llm = get_tongyi_llm(model="qwen-turbo")
+        elif llm_type == LLMType.QWEN_MAX:
+            llm = get_tongyi_llm(model="qwen-max")
+        elif llm_type == LLMType.GPT_35_TURBO:
             llm = get_openai_llm()
         elif llm_type == LLMType.GPT_4:
             llm = get_openai_llm(model="gpt-4-turbo")
@@ -312,7 +372,9 @@ class ConfigurableRetrieval(RunnableBinding):
 
 
 chat_retrieval = (
-    ConfigurableRetrieval(llm_type=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
+    # ConfigurableRetrieval(llm_type=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
+    # !changed: 修改为通义千问
+    ConfigurableRetrieval(llm_type=LLMType.QWEN2_72b_INSTRUCT, checkpoint=CHECKPOINTER)
     .configurable_fields(
         llm_type=ConfigurableField(id="llm_type", name="LLM Type"),
         system_message=ConfigurableField(id="system_message", name="Instructions"),
@@ -330,7 +392,9 @@ chat_retrieval = (
 
 agent: Pregel = (
     ConfigurableAgent(
-        agent=AgentType.GPT_35_TURBO,
+        # !changed: 修改为通义千问
+        # agent=AgentType.GPT_35_TURBO,
+        agent=AgentType.QWEN2_72b_INSTRUCT,
         tools=[],
         system_message=DEFAULT_SYSTEM_MESSAGE,
         retrieval_description=RETRIEVAL_DESCRIPTION,

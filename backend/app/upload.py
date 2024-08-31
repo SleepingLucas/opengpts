@@ -23,6 +23,7 @@ from langchain_core.runnables import (
 )
 from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
+from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 
 from app.ingest import ingest_blob
@@ -82,7 +83,16 @@ def convert_ingestion_input_to_blob(file: UploadFile) -> Blob:
     )
 
 
+# !changed
 def _determine_azure_or_openai_embeddings() -> PGVector:
+    if os.environ.get("DASHSCOPE_API_KEY"):
+        return PGVector(
+            connection_string=PG_CONNECTION_STRING,
+            embedding_function=DashScopeEmbeddings(
+                model="text-embedding-v2",
+            ),
+            use_jsonb=True,
+        )
     if os.environ.get("OPENAI_API_KEY"):
         return PGVector(
             connection_string=PG_CONNECTION_STRING,
@@ -152,6 +162,7 @@ PG_CONNECTION_STRING = PGVector.connection_string_from_db_params(
     user=os.environ["POSTGRES_USER"],
     password=os.environ["POSTGRES_PASSWORD"],
 )
+print("数据库连接字符串：", PG_CONNECTION_STRING)
 vstore = _determine_azure_or_openai_embeddings()
 
 
